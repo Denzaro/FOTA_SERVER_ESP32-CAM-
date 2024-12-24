@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    {%load static%}
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1">
+    <title>FOTA</title>
+    <!-- Css -->
+
+    <link rel="icon" type="image/png" href="{% static '/UTE_LOGO.png' %}">
+    <link rel="stylesheet" href="{% static 'css/jquery-ui.css' %}">
+    <link rel="stylesheet" href="{% static 'bootstrap-4.3.1/css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'fontawesome-free-5.15.4-web\css\all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/bootstrap-datetimepicker.min.css' %}">
+    <link rel="stylesheet" href="{% static 'DataTables/datatables.min.css' %}" >
+    <link rel="stylesheet" href="{% static 'css/jquery-ui.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/daterangepicker.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dataTables.bootstrap.css' %}">
+    <link rel="stylesheet" type ="text/css" href="{% static 'css/main.css' %}">
+    <link rel="stylesheet" type ="text/css" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" type ="text/css" href="{% static 'css/bootstrap-multiselect.css' %}">
+    <link rel="stylesheet" type ="text/css" href="{% static 'resize_col/jquery.resizableColumns.css' %}">
+    <!-- JavaScript -->
+    <script type="text/javascript" src="{% static 'js/jquery-1.7.1.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'bootstrap-4.3.1/js/bootstrap.bundle.min.js' %}"></script>
+    <!-- <script type="text/javascript" src="{% static 'js/popper.js' %}"></script> -->
+    <script type="text/javascript" src="{% static 'DataTables/datatables.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/loader.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/jquery-ui.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/moment.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/daterangepicker.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/main.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/popper.js/' %}"></script>
+    <script type="text/javascript" src="{% static 'js/bootstrap.multiselect.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'resize_col/jquery.resizableColumns.js' %}"></script>
+
+    
+    <header class="main-header" style="background-color: white; border-image: url(/static/cd_bosch_supergraphic.png) 30 round; border-style: solid none none; border-width: 17px 0 0; position: sticky; top: 0;">
+    </header>
+</head>
+<body>
+        <nav class="navbar navbar-light px-5 py-0" style="background-color: #e3f2fd;">
+            <div class="home-logo m-3 ml-5">
+                <a class="navbar-brand" href="{% url 'home' %}">
+                    <img src="../../static/UTE_LOGO-remove-bg.png"  height="25" class="d-inline-block align-center" alt="aa">
+                </a>
+            </div>
+            {% if user.is_authenticated %}
+            <div class="nav-username navbar-text ml-auto pr-5 text-uppercase">
+                {{ user.username }} 
+            </div>
+            <div class="btn-group mr-5">
+                <button class="btn btn-secondary btn-lg py-3 px-4 rounded opacity-25" type="button" data-toggle="dropdown" >
+                    <i class="fa fa-user"></i>
+                </button>
+                <div class="dropdown-menu dropdown-menu-right ">
+                    <p class="dropdown-item font-weight-bold">{{ user.username }}</p>
+                    <a class="dropdown-item disabled" href="#">Action 1</a>
+                    <a class="dropdown-item disabled" href="#">Action 2</a>
+                    <div class="dropdown-divider mt-4"></div>
+                    
+                    <a class="dropdown-item text-danger" href="{% url 'u_logout' %}">Log Out <i class="fa fa-power-off m-2" aria-hidden="true"></i></a>
+                  </div>
+            </div>
+            {% else %}
+            {% endif %}
+        </nav>
+    
+
+{% block page_content %}
+{% endblock %}
+</body>
+</html>

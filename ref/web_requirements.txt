@@ -1,0 +1,4 @@
+1. login 
+2. chưa có server 
+3. interact with stm32 kit page (cam) 
+4. xử lý queue(15p, phải có 1 clock để count remain time) 

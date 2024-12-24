@@ -1,0 +1,56 @@
+<!-- myapp/templates/login.html -->
+{% extends 'base.html'%}
+{% block page_content %}
+<section class="login-section" style="background-color: #ffffff;">
+    <div class="align-items-center mt-5 pt-5 container">
+      <div class="row d-flex justify-content-center align-items-center">
+        <div class="col-12 col-md-8 col-lg-6 col-xl-5">
+          <div class="card shadow-2-strong shadow-lg mb-5 rounded">
+            <div class="card-body p-5 text-center h3">
+              <h1 class="mb-5 font-weight-bold">LOG IN</h1>
+              
+              <form method="post">
+              {% csrf_token %}
+              {% if messages %}
+              <ul class="messages">
+                  {% for message in messages %}
+                  <div class="alert alert-danger" role="alert">
+                      {{ message }}
+                  </div>
+                  {% endfor %}
+              </ul>
+              {% endif %}
+                <div data-mdb-input-init class="form-outline text-left">
+                    <label class="form-label" for="username">Username</label>
+                    <input class="form-control form-control-lg" type="text" id="username" name="username" placeholder="Enter your username"><br><br>
+                </div>
+    
+                <div data-mdb-input-init class="form-outline text-left">
+                    <label class="form-label" for="password">Password</label>
+                    <input class="form-control form-control-lg" type="password" id="password" name="password" placeholder="Enter your password"><br><br>
+                </div>
+                
+                <!-- <select name="alm-server" class="custom-select custom-select-md mb-3">
+                    {% for option in options %}
+                        <option value="{{ option.value }}">{{ option.display }}</option>
+                    {% endfor %}
+                </select><br><br> -->
+                <button data-mdb-button-init data-mdb-ripple-init class="btn btn-primary btn-lg btn-block p-2" type="submit" onclick="authenticate()">
+                    <span style="font-size:2rem;" id="loginButton">
+                        Login
+                    </span>
+                    <div id="spinner"  style="display:none;">
+                      <div class="loader"></div>
+                    </div>
+                </button>
+                
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+{% endblock %}
+

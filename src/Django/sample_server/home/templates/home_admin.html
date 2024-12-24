@@ -1,0 +1,662 @@
+{% extends 'base.html'%}
+{% block page_content %}
+<div id="home-container">
+  <div class="hil-div row m-0 align-items-center">
+    <div class="col-sm-2 col-1"></div>  
+    <div class="col-sm-4 col-5 h-100">
+        <div class="row align-items-center form-select-ex-plan mr-5">
+          <label for="project-select" class="h-10 w-100">Project</label>
+          <select id="project-select" class="h-10 w-100 custom-select">
+            <option value="">Select project</option>
+          </select>
+        </div>
+    </div>
+    <div class="col-sm-4 col-5 h-100">
+      <div class="row align-items-left form-select-ex-plan mr-5">
+        <label for="gc-select" class="h-10 w-100">Stream / Baseline</label>
+        <select id="gc-select" class="h-10 w-100 custom-select">
+          <!-- <option value=""></option> -->
+        </select>
+      </div>
+    </div>
+  </div>
+  <div class="hil-div row m-0 align-items-center">
+    <div class="col-sm-2 col-1"></div>  
+    <div class="col-sm-4 col-5 h-100">
+      <div class="row align-items-center form-select-ex-plan mr-5">
+        <label for="plan-select" class="h-10 w-100">Test Plan</label>
+        <select id="plan-select" class="h-10 w-100 custom-select">
+          <!-- <option value="">Select Test Plan</option> -->
+        </select>
+      </div>
+    </div>
+    <div class="col-sm-4 col-5 h-100">
+      <div class="row align-items-center form-select-ex-plan mr-5">
+        <label for="suite-select" class="h-10 w-100">Test Suite</label>
+        <select id="suite-select" class="h-10 w-100 custom-select " multiple="multiple">
+          <!-- <option value="">Select Test Suite</option> -->
+        </select>
+      </div>
+    </div>
+  </div>
+  <div class="d-flex justify-content-center align-items-center p-5">
+    <button id = "save-dtb-btn" type="button" class="btn btn-primary btn-lg align-self-end px-5 py-2">Save to database</button>
+    <span id="tooltiptext">All field need to be selected</span>
+  </div>
+</div>
+<div class="modal fade" id="noti-modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-uppercase font-weight-bold" id="ModalLabel">Notification</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" id="noti-modal-body">
+        <p class="pt-5 pb-4" id="noti-response-text"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary btn-lg" id="homeButton">Go to Home page</button>
+        <button type="button" class="btn btn-secondary btn-lg" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id= "load-container" style="display: none;">
+  <div class="spin-container mw-100">
+    <div id="test-case-loader" class=""></div>
+  </div>
+  <div id="loading-text" class="mw-100">Loading...</div>
+</div>
+<div class="modal fade" id="confirm-modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-uppercase font-weight-bold" id="ModalLabel">Confirm your request</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" id="confirm-modal-body">
+        <p class="pt-5 pb-4" id="confirm-response-text"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary btn-lg" id="confirmedButton">Save to database</button>
+        <button type="button" class="btn btn-secondary btn-lg" data-dismiss="modal">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+  let testMode = false;
+  let interval;
+  let i = 0;
+  let loadingText = ['Loading   ', 'Loading.  ', 'Loading.. ', 'Loading...'];
+  let selectedGCId;
+  let tplan_queryId;
+  let selectedInform = {
+    'project': '',
+    'stream': '',
+    'stream_id': '',
+    'testplan': '',
+    'testplan_id': '',
+    'testsuite': [],
+  }
+  let selectedTSlist = []
+  let TClist = []
+  //let renderData = JSON.parse("{{data|escapejs}}");;
+
+  function disableSelect(){
+    $('#gc-select').multiselect('disable');
+    $('#plan-select').multiselect('disable');
+    $('#suite-select').multiselect('disable');
+  }
+  
+  function enableSelect(){
+    $('#gc-select').multiselect('enable');
+    $('#plan-select').multiselect('enable');
+    $('#suite-select').multiselect('enable');
+  }
+  
+  function loadProjectList(){
+    disableSelect();
+    $('#project-select').multiselect('disable');
+    startAnimation('project-select');
+    $.ajax({
+      url: '/project-hil-list',  // Replace with your actual API endpoint
+      type: 'get',
+      data: {},
+      dataType : 'json',
+      success: function(data) {
+        stopAnimation();
+        $('#project-select').multiselect('enable');
+        project_list = data
+        for(x in data){
+          $('#project-select').append($('<option>').val(x).text(x));
+        }
+        $('#project-select').multiselect('rebuild');
+      },
+      error: function(error) {
+      // Handle the error here
+      }
+    });
+
+  }
+
+  function loadtestPlanlist(plan_id){
+    disableSelect();
+    startAnimation('plan-select');
+    $.ajax({
+      url: '/query_alm_test_plans',  // Replace with your actual API endpoint
+      type: 'get',
+      async: true,
+      cache: false,
+      data: {'test_stream_id': plan_id},
+      dataType : 'json',
+      success: function(data) {
+        stopAnimation();
+        $('#gc-select').multiselect('enable');
+        $('#plan-select').multiselect('enable');
+        $('#plan-select').append("<option disabled selected>Select test plan</option>");
+        $.each(data, function(key, value) {
+          const optionText = value['title'];
+          const optionValue = JSON.stringify({
+            queryId: value['query_id'],
+            id: value['id']
+          });
+          $('#plan-select').append($('<option>', { 
+            value: optionValue,
+            text: optionText
+          }));
+        });
+        $('#plan-select').multiselect('rebuild');
+      },
+      error: function(error) {
+      // Handle the error here
+      }
+    });
+  }
+
+  function loadtestSuitelist(suite_id){
+    disableSelect();
+    startAnimation('suite-select')
+    // $('#suite-select').prop('disabled', true);
+
+    $.ajax({
+      url: '/query_alm_test_suites',  // Replace with your actual API endpoint
+      type: 'get',
+      async: true,
+      cache: false,
+      data: {'test_plan_url': suite_id},
+      dataType : 'json',
+      success: function(data) {
+        
+        enableSelect();
+        stopAnimation();
+
+        $.each(data, function(key, value) {
+          const optionText = value['name'];
+          const optionValue = JSON.stringify({
+            queryId: value['query_id'],
+            id: value['id']
+          });
+          $('#suite-select').append($('<option>', { 
+            value: optionValue,
+            text: optionText
+          }));
+        });
+
+        $('#suite-select').multiselect('rebuild');
+
+      },
+      error: function(error) {
+      // Handle the error here
+      }
+    });
+  }
+
+  function saveTestSuite(){
+
+    if (Object.keys(selectedInform.testsuite).length > 0){
+      $('#load-container').show();
+      disableSelect();
+      $('#save-dtb-btn').prop("disabled",true);
+      $.ajax({
+        url: '/save_testsuite_database/',
+        type: 'post',
+        async: true,
+        cache: false,
+        headers: {
+        'X-CSRFToken': "{{csrf_token}}"
+        },
+        data: JSON.stringify(selectedInform),
+        contentType: 'application/json',
+        dataType : 'json',
+        success: function(data) {
+          enableSelect();
+          $('#save-dtb-btn').prop("disabled",false);
+          $('#load-container').hide();
+        },
+        error: function(error) {
+          $('#load-container').hide();
+          $('#save-dtb-btn').prop("disabled",false);
+          alert('Save Testsuite Fail')
+        }
+      });
+    } else {
+      $('#save-dtb-btn').prop("disabled",true);
+    }
+  }
+  // The function that starts the animation
+  function startAnimation(selectID) {
+
+    interval = setInterval(function() {
+      i = (i + 1) % loadingText.length;
+      $("#"+ selectID).closest('.multiselect-native-select').find('.multiselect-selected-text').text(loadingText[i]);
+    }, 500); // Change text every 500 milliseconds
+  }
+
+  // The function that stops the animation
+  function stopAnimation() {
+      if (interval) {
+          clearInterval(interval);
+          interval = null;
+          i = 0;
+      }
+  }
+
+
+
+  function clearSelectOption(select_tag) {
+    $(select_tag).find('option').remove();
+  }
+
+  //--------------------------------------------------------
+  $( document ).ready(function() {
+    
+    $('#save-dtb-btn').prop("disabled",true);
+    // disableSelect();
+    $('.table-div').hide();
+
+    $('#project-select').multiselect({
+      enableFiltering: true,
+      buttonClass: 'custom-btn',
+      nonSelectedText: 'Select Project',
+    });
+
+    $('#gc-select').multiselect({
+      enableFiltering: true,
+      buttonClass: 'custom-btn',
+      nonSelectedText: 'Select Stream / Baseline',
+    });
+
+    $('#plan-select').multiselect({
+      enableFiltering: true,
+      buttonClass: 'custom-btn',
+      nonSelectedText: 'Select Test Plan',
+    });
+
+    $('#suite-select').multiselect({
+      enableFiltering: true,
+      includeSelectAllOption: true,
+      selectAllJustVisible: false,
+      buttonTextAlignment: 'left',
+      nonSelectedText: 'Select Test Suite',
+      buttonContainer: '<div class="btn-group test-suite-group"/>',
+      buttonClass: 'custom-btn',
+      optionClass: function(element) {
+                  return 'suite-option';
+      },
+      onDropdownHide: function(event) {
+        update_testsuite_list();
+        $('#save-dtb-btn').prop("disabled",false);
+      }
+    });
+
+    loadProjectList();
+
+    $('#save-dtb-btn').on( "click", function() {
+      $('#confirm-modal').modal('show');
+    });
+
+    $('#confirmedButton').on('click', function() {
+
+      disableSelect();
+      $('#confirm-modal').modal('hide');
+      $('.table-div').hide();
+      $('#load-container').show();
+      saveTestSuite();
+    })
+    $('#save-dtb-btn').on('mousemove', function(event) {
+      if ($('#save-dtb-btn').is(':disabled')) {
+        $('#tooltiptext').css({
+          display: 'block',
+          left: event.pageX + 10 + 'px',
+          top: event.pageY + 10 + 'px'
+        });
+      }
+    });
+
+    $('#save-dtb-btn').on('mouseleave', function() {
+        $('#tooltiptext').css('display', 'none');
+    });  
+  });
+
+    $('#project-select').change(function(){
+
+      selectedInform = {
+          'project': '',
+          'stream': '',
+          'testplan': '',
+          'testsuite': {},
+        }
+
+      // get the selected value
+      selected = this.value;
+
+      // get the corresponding list
+      project_select = project_list[selected];
+
+      // remove default option value
+      $("option[value='']").remove();
+      
+      selectedProject = $('#project-select').val();
+      selectedInform['project'] = selectedProject; 
+      // console.log(selectedProject)
+      startAnimation('gc-select');
+      disableSelect();
+      $.ajax({
+        url: '/query_alm_streams',  // Replace with your actual API endpoint
+        type: 'get',
+        async: true,
+        cache: false,
+        data: {'project': selectedProject},
+        dataType : 'json',
+        success: function(data) {
+          $('#gc-select').multiselect('enable');
+          $('#project-select').multiselect('enable');
+          stopAnimation();
+          $('#gc-select').append("<option disabled selected>Select Stream / Baseline</option>");
+          $.each(data, function(key, value) {
+            // console.log(value)
+            merged_value = JSON.stringify({
+              stream_id: value['identifier'],
+              component_href: value['component_href']
+            });
+
+            $('#gc-select').append($('<option>', { 
+              value: merged_value,
+              text : value['title'] 
+            }));
+          });
+          $('#gc-select').multiselect('rebuild');
+        },
+        error: function(error) {
+        // Handle the error here
+        }
+      }); 
+    });
+
+    $("#gc-select").change(function() {
+      // This function will be triggered when the selected option changes
+      value = $(this).val();
+      selectedGCId = JSON.parse(value).stream_id.toString(); 
+      var component_href = JSON.parse(value).component_href.toString(); 
+
+      let selectedOptionText = $("option:selected", this).text();
+
+      selectedInform['stream'] = selectedOptionText;
+      selectedInform['stream_id'] = selectedGCId;
+      let gc_data ={
+        'project':selectedProject,
+        'title': selectedOptionText,
+        'gc_id': selectedGCId,
+        'component_href': component_href,
+      }
+      
+      $.ajax({
+        url: '/save_streams_database/',  // Replace with your actual API endpoint
+        type: 'post',
+        async: true,
+        cache: false,
+        headers: {
+          'X-CSRFToken': "{{csrf_token}}"
+        },
+        data: gc_data,
+        dataType : 'json',
+          success: function(data) {
+            // $('#load-container').hide();
+          },
+          error: function(error) {
+            // Handle the error here
+          }
+        });
+
+      clearSelectOption("#plan-select")
+      loadtestPlanlist(selectedGCId);
+      
+    });
+
+    $("#plan-select").change(function() {
+      // This function will be triggered when the selected option changes
+      let selectedPlanData = $(this).val();
+      let selectedObjectData = JSON.parse(selectedPlanData);
+      tplan_queryId = selectedObjectData.queryId;
+      let tplan_id = selectedObjectData.id;
+      let selectedOptionText = $("option:selected", this).text();
+
+      selectedInform['testplan'] = selectedOptionText;
+      selectedInform['testplan_id'] = tplan_queryId;
+      let tplan_data = {
+      'gc_id':selectedGCId,
+      'title': selectedOptionText,
+      'tplan_query_id': tplan_queryId,
+      'tplan_view_id': tplan_id,
+      }
+
+      $.ajax({
+      url: '/save_testplan_database/',  // Replace with your actual API endpoint
+      type: 'post',
+      async: true,
+      cache: false,
+      headers: {
+      'X-CSRFToken': "{{csrf_token}}"
+      },
+      data: tplan_data,
+      dataType : 'json',
+      success: function(data) {
+        // alert('Save Testplan Complete')
+      },
+      error: function(error) {
+      // Handle the error here
+      // alert('Save Testplan Fail')
+      }
+    });
+
+      disableSelect();
+      clearSelectOption("#suite-select");
+      loadtestSuitelist(tplan_queryId);
+    });
+
+    $('#homeButton').click(function() {
+    window.location.href = '/';  
+  });
+  //------------------------------------------------------
+  
+
+  function getLastNumber(url) {
+    var match = url.match(/(\d+)$/);
+    return match ? match[0] : null;
+  }
+
+  // Function to get the test suite information dynamically
+  function getTestSuiteInfo() {
+    var testSuiteInfo = [];
+    $('.suite-option').each(function(index) {
+        var name = $(this).find('label').attr('title');
+        var value = $(this).find('input[type="checkbox"]').val();
+        
+        var id = JSON.parse(value).id.toString(); 
+        var queryId = JSON.parse(value).queryId.toString(); 
+
+        queryId = getLastNumber(queryId);
+
+        testSuiteInfo.push({
+            name: name,
+            id: id,
+            queryId: queryId,
+        });
+    });
+    return testSuiteInfo;
+  }
+
+  // Function to get all the selected test cases information
+  function getAllTableData() {
+    // var allData = [];
+    var selectedData = [];
+
+    // Get all test suites information in current selected test plan
+    var testSuiteInfo = getTestSuiteInfo();
+
+    // Iterate over each DataTable instance within the #tableContent div
+    $('#tableContent .table').each(function(index) {
+        var table = $(this).DataTable();
+        var suiteInfo = testSuiteInfo[index];
+
+        // Get all data from the table
+        var tableData = table.rows().data().toArray();
+
+        // Get selected data from the table
+        table.rows().every(function() {
+            var row = this.node();
+            if ($(row).find('input[type="checkbox"]').is(':checked')) {
+                var rowData = this.data();
+                rowData.id = rowData.id.toString();
+                rowData.query_id = getLastNumber(rowData.query_id);
+                rowData.suite_query_id = suiteInfo.queryId;
+                rowData.suite_id = suiteInfo.id;
+                rowData.suite_name = suiteInfo.name;
+                selectedData.push(rowData);
+            }
+        });
+    });
+
+    return selectedData;
+  }
+  
+  function send_execution_plan(){
+
+    value = $('#gc-select').val();
+
+    selectedGCValues = JSON.parse(value).stream_id.toString(); 
+    selectedGCNames = $('#gc-select option:selected').text();
+
+    //------------------------------------------------------
+    let selectedPlanData = $('#plan-select').val();
+    let selectedPlanObject = JSON.parse(selectedPlanData);
+
+    selectedPlanNames = $('#plan-select option:selected').text();
+
+    selectedPlanId = selectedPlanObject.id.toString();
+
+    selectedPlanQueryId = selectedPlanObject.queryId.toString();
+    selectedPlanQueryId = selectedPlanQueryId.substring(selectedPlanQueryId.lastIndexOf('/')+1,);
+
+    // Call the function to get all table data and selected data
+    var tableData = getAllTableData();
+
+    var mappedArray = tableData.map(function(item) {
+    return {
+        // author: renderData['username'],
+        global_config_name: selectedGCNames,
+        global_config_id: selectedGCValues,
+        test_plan_name: selectedPlanNames,
+        test_plan_id: selectedPlanId,
+        test_plan_query_id: selectedPlanQueryId,
+        test_suite_name: item.suite_name,
+        test_suite_id: item.suite_id,
+        test_suite_query_id: item.suite_query_id,
+        test_case_name: item.name,
+        test_case_id: item.id,
+        test_case_query_id: item.query_id,
+        test_case_implementation_path: item.implementation_path,
+        execution_scheduler: formatted_date,
+      };
+    });
+
+    // Call the function to get all table data and selected data
+    var tableData = getAllTableData();
+
+    // Create the sendObject
+    let sendObject = {
+        "execution_plan": {},
+        "hil_name": renderData['PCsetup'],
+        // 'CSRFToken': "{{csrf_token}}"
+    };
+
+    // Map the selected data to the sendObject
+    mappedArray.forEach(function(item, index) {
+      sendObject.execution_plan[index] = item;
+    });
+
+    disableSelect();
+  }
+
+  function update_testsuite_list() {
+    var counter = 0;
+
+    $('.test-suite-group .multiselect-container input:checked').each(function() {
+        var value = $(this).val();
+        var title = $(this).closest('label').attr('title');
+
+        // Skip the "Select all" option
+        if (value === "multiselect-all") {
+            return true;  // Continue to the next iteration
+        }
+
+        var suiteParseItem = JSON.parse(value);
+        var suiteQueryId = suiteParseItem.queryId;
+        var suiteViewId = suiteParseItem.id;
+
+        if (typeof title !== 'undefined') {
+            selectedInform.testsuite[counter] = {
+                'title': title,
+                'query_id': suiteQueryId,
+                'view_id': suiteViewId,
+            };
+            counter++;
+        }
+    });
+
+    // Construct the text to display with HTML tags for bold
+    var displayText = `
+        <strong>Global Configuration:</strong> ${selectedInform.stream}<br>
+        <strong>Test Plan:</strong> ${selectedInform.testplan}<br>
+        <strong>Test Suite:</strong><br>
+    `;
+
+    for (var key in selectedInform.testsuite) {
+        if (selectedInform.testsuite.hasOwnProperty(key)) {
+            displayText += `    - ${selectedInform.testsuite[key].title}<br>`;
+        }
+    }
+
+    $('#confirm-response-text').html(displayText);
+  }
+
+</script>
+{% endblock %}
+
+
+ 
+
+
+
+
+
+
+ 
+

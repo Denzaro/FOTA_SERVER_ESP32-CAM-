@@ -1,0 +1,742 @@
+{% extends 'base.html'%}
+{% block page_content %}
+<div id="home-container">
+  <div class="hil-div row m-0 align-items-center">
+    <div class=" col-sm-2 col-1"></div>  
+    <div class="col-sm-4 col-5 h-100">
+        <div class="row align-items-left form-select-ex-plan mr-5">
+          <label for="gc-select" class="h-10 w-100">Stream / Baseline</label>
+          <select id="gc-select" class="h-10 w-100 custom-select">
+          </select>
+        </div>
+    </div>
+    <div class="col-sm-4 col-5 h-100">
+      <div class="row align-items-center form-select-ex-plan ml-5">
+        <label for="plan-select" class="h-10 w-100">Test Plan</label>
+        <select id="plan-select" class="h-10 w-100 custom-select">
+        </select>
+      </div>
+    </div>
+  </div>
+  <div class="hil-div row m-0 align-items-center">
+    <div class="col-sm-2 col-1"></div>  
+    <div class="col-sm-4 col-5 h-100">
+        <div class="row align-items-center form-select-ex-plan mr-5">
+          <label for="suite-select" class="h-10 w-100">Test Suite</label>
+          <select id="suite-select" class="h-10 w-100 custom-select " multiple="multiple">
+          </select>
+        </div>
+    </div>
+    <div class="col-sm-4 col-5 h-100">
+      <div class="row align-items-center form-select-ex-plan ml-5">
+        <label for="time-select" class="h-10 w-100">Time Execution</label>
+        <input type="datetime-local" id="execute-time" name="execute-time" class="custom-btn h-10 w-100">
+      </div>
+    </div>
+  </div>
+<div>
+ 
+  <div class="container table-div">
+    <ul class="nav nav-tabs pb-4" id="tableTabs">
+      
+    </ul>
+    <div class="tab-content" id="tableContent">
+    </div>
+    <div class="d-flex justify-content-center align-items-center p-5">
+      <button id = "send-plan-btn" type="button" class="btn btn-primary btn-lg align-self-end px-5 py-2">Send Execution Plan</button>
+    </div>
+  </div>
+</div>
+  <div id= "load-container" style="display: none;">
+    <div class="spin-container mw-100">
+      <div id="test-case-loader" class=""></div>
+    </div>
+    <div id="loading-text" class="mw-100">Loading...</div>
+  </div>
+</div>
+<div class="modal fade" id="noti-modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-uppercase font-weight-bold" id="ModalLabel">Notification</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" id="noti-modal-body">
+        <p class="pt-5 pb-4" id="noti-response-text"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary btn-lg" id="homeButton">Go to Home page</button>
+        <button type="button" class="btn btn-secondary btn-lg" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="confirm-modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-uppercase font-weight-bold" id="ModalLabel">Confirm your request</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" id="confirm-modal-body">
+        <label for="exec_plan_name" class="font-weight-bold h4">Execution plan name:</label>
+        <input class="form-control" id="exec_plan_name" value="">
+        <p class="pt-4 pb-3 h4" id="confirm-response-text"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary btn-lg" id="confirmedButton">Send Execution Plan</button>
+        <button type="button" class="btn btn-secondary btn-lg" data-dismiss="modal">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+  let interval;
+  let i = 0;
+  let loadingText = ['Loading   ', 'Loading.  ', 'Loading.. ', 'Loading...'];
+  let renderData = JSON.parse("{{data|escapejs}}");;
+  let selectedTCs = 0;
+
+  function disableSelect(){
+    $('#gc-select').multiselect('disable');
+    $('#plan-select').multiselect('disable');
+    $('#suite-select').multiselect('disable');
+  }
+  
+  function enableSelect(){
+    $('#gc-select').multiselect('enable');
+    $('#plan-select').multiselect('enable');
+    $('#suite-select').multiselect('enable');
+  }
+
+  function getLastNumber(url) {
+    var match = url.match(/(\d+)$/);
+    return match ? match[0] : null;
+  }
+
+  // Function to get the test suite information dynamically
+  function getTestSuiteInfo() {
+    var testSuiteInfo = [];
+    $('.suite-option').each(function(index) {
+        var name = $(this).find('label').attr('title');
+        var value = $(this).find('input[type="checkbox"]').val();
+        
+        var id = JSON.parse(value).id.toString(); 
+        var queryId = JSON.parse(value).queryId.toString(); 
+
+        // queryId = getLastNumber(queryId);
+
+        testSuiteInfo.push({
+            name: name,
+            id: id,
+            queryId: queryId,
+        });
+    });
+    return testSuiteInfo;
+  }
+
+  function loadtestPlanlist(plan_id){
+    disableSelect();
+    startAnimation('plan-select');
+    $.ajax({
+      url: '/query_internal_test_plans',  // Replace with your actual API endpoint
+      type: 'get',
+      async: true,
+      cache: false,
+      data: {'test_stream_id': plan_id},
+      dataType : 'json',
+      success: function(data) {
+        console.log(data)
+        stopAnimation();
+        $('#gc-select').multiselect('enable');
+        $('#plan-select').multiselect('enable');
+        $('#plan-select').append("<option disabled selected>Select test plan</option>");
+        $.each(data, function(key, value) {
+          const optionText = value['title'];
+          const optionValue = JSON.stringify({
+            queryId: value['query_id'],
+            id: value['id']
+          });
+          $('#plan-select').append($('<option>', { 
+            value: optionValue,
+            text: optionText
+          }));
+        });
+        $('#plan-select').multiselect('rebuild');
+      },
+      error: function(error) {
+      // Handle the error here
+      }
+    });
+  }
+
+  function loadtestSuitelist(gc_id, plan_id){
+
+    startAnimation('suite-select')
+
+    $.ajax({
+      url: '/query_internal_test_suites',
+      type: 'get',
+      async: true,
+      cache: false,
+      data: {
+        'test_plan_url': plan_id,
+        'gc_id': gc_id 
+      },
+      dataType : 'json',
+      success: function(data) {
+        enableSelect();
+        stopAnimation();
+        $.each(data, function(key, value) {
+          const optionText = value['name'];
+          const optionValue = JSON.stringify({
+            queryId: value['query_id'],
+            id: value['id']
+          });
+          $('#suite-select').append($('<option>', { 
+            value: optionValue,
+            text: optionText
+          }));
+        });
+
+        $('#suite-select').multiselect('rebuild');
+
+        var button = $('<button class="btn btn-primary query-btn">Query</button>');
+        $('.test-suite-group .multiselect-container .input-group').append(button);
+
+        var $container = $('#suite-select').closest('.multiselect-native-select').find('.multiselect-container');
+        var $filter = $container.find('.multiselect-filter');
+        var $selectAll = $container.find('.multiselect-all').closest('li');
+    
+        $filter.add($selectAll).wrapAll('<div class="sticky-group"></div>');
+        
+        button.on('click', function() {
+          var suiteData = {};
+          suiteData.selectedValues = [];
+          suiteData.selectedTitles = [];
+          $('.test-suite-group .multiselect-container input:checked').each(function() {
+              var value = $(this).val();
+              var title = $(this).closest('label').attr('title');
+              if (typeof title !== 'undefined'){
+                suiteData.selectedValues.push(value);
+                suiteData.selectedTitles.push(title);
+              }
+              
+          });
+          $('.dropdown-menu').removeClass('show');
+
+          loadtestCaseData(suiteData);
+        }); 
+      },
+      error: function(error) {
+      // Handle the error here
+      }
+    });
+  }
+
+  function loadtestCaseData(testSuiteData){
+
+    disableSelect();
+    $('#load-container').show();
+  
+    queryIdList = testSuiteData.selectedValues
+    $.fn.dataTable.tables().forEach(function(table) {
+      $(table).DataTable().destroy();
+    });
+
+    $('#tableTabs').empty();
+    $('#tableContent').empty();
+
+    var successCounter = 0;
+    var totalItems = testSuiteData.selectedValues.length;
+
+    let selectedPlanData =  $('#plan-select').val();
+    let selectedObjectData = JSON.parse(selectedPlanData);
+    let plan_id = selectedObjectData.queryId;
+
+    gc_id = $('#gc-select').val().toString();
+
+    testSuiteData.selectedValues.forEach(function(item, index) {
+
+      var suiteName = testSuiteData.selectedTitles[index];
+      var suiteParseItem = JSON.parse(item);
+      var suite_query_id = suiteParseItem.queryId;
+      var suite_view_id = suiteParseItem.id;
+
+      $.ajax({
+          url: '/query_internal_test_cases',
+          type: 'get',
+          async: true,
+          cache: false,
+          data: {
+            'plan_id': plan_id,
+            'gc_id': gc_id,
+            'suite_id': suite_query_id
+          },
+
+          dataType: 'json',
+          success: function(data) {
+            // Create tab for each test suite selected
+            var navItem = $('<li class="nav-item"><a class="nav-link" id="tab-' + suiteName + '" data-toggle="tab" href="#tab-' + index + '" role="tab" aria-controls="tab-' + suiteName + '" aria-selected="true">' + suiteName + '</a></li>');
+
+            // Active the first tab
+            if (successCounter === 0) navItem.find('a').addClass('active');
+
+            // Add the created tabs nav into the table Tabs
+            $('#tableTabs').append(navItem);
+
+            var dataArray = Object.keys(data).map(function(key) {
+                return data[key];
+            });
+            console.log(dataArray);
+            
+            var tableContent = $('<div class="tab-pane fade" id="tab-' + index + '" aria-labelledby="tab-' + suiteName + '"><table id="table-' + index + '" class="table"><thead><tr><th><input type="checkbox" id="select-all"></th><th>Test ID</th><th>TC Name</th><th>Implementation Path</th></tr></thead><tbody></tbody></table></div>');
+
+            if (successCounter === 0) tableContent.addClass('show active');
+
+            $('#tableContent').append(tableContent);
+            
+            var table = $('#table-' + index).DataTable({
+                pagingType: 'simple_numbers',
+                data: dataArray,
+                order: [[1, 'desc']],
+                autoWidth: false,
+                columnDefs: [{
+                    targets: 0,
+                    width: "10%",
+                    searchable: false,
+                    orderable: false,
+                    className: 'align-item-center text-center align-middle',
+                    render: function (data, type, full, meta){
+                        return '<input type="checkbox" class="select-checkbox" name="id[]" value="' + $('<div/>').text(data).html() + '">';
+                    },
+                  },
+                  { "width": "15%", "targets": 1 },
+                  { "width": "35%", "targets": 2 },
+                  { "width": "40%", "targets": 3 }
+                ],
+                columns: [
+                    { title: '<input type="checkbox" id="select-all-' + index + '">', data: null, defaultContent: ''},
+                    { data: 'tcase_view_id', title: 'Test ID'},
+                    { data: 'title', title: 'TC Name'},
+                    { data: 'implementation_path', title: 'Implementation Path'},
+                ],
+                "createdRow": function(row, data, dataIndex) {
+                  $(row).find('th').addClass('align-item-center text-center align-middle');
+                },
+                // scrollX: ""
+                scrollY: '50vh',
+                scrollCollapse: true,
+                scrollX: true, 
+                colResize:
+                {
+                  isEnabled: true,
+                  saveState: false,
+                  hoverClass: 'dt-colresizable-hover',
+                  hasBoundCheck: true,
+                  minBoundClass: 'dt-colresizable-bound-min',
+                  maxBoundClass: 'dt-colresizable-bound-max',
+                  isResizable: function (column) {
+                    return true;
+                  },
+                }
+            });
+            
+            $('#table-' + index).attr("data-testsuite-id", suite_view_id)
+            $('#table-' + index).attr("data-testsuite-name", suiteName)
+            $('#table-' + index).attr("data-testsuite-query-id", suite_query_id)
+            
+            // Handle click on "Select all" control
+            $('#select-all-' + index).on('click', function(){
+                // Check/uncheck all checkboxes in the table
+                var rows = table.rows({ 'search': 'applied' }).nodes();
+                $('input[type="checkbox"]', rows).prop('checked', this.checked);
+            });
+            
+            // Trigger the click event on the "select-all" checkbox to check all checkboxes by default
+            $('#select-all-' + index).trigger('click');
+
+            // Handle click on checkbox to set state of "Select all" control
+            $('#table-' + index + ' tbody').on('change', 'input[type="checkbox"]', function(){
+              // If checkbox is not checked
+              if(!this.checked){
+                  var el = $('#select-all-' + index).get(0);
+                  // If "Select all" control is checked and has 'indeterminate' property
+                  if(el && el.checked && ('indeterminate' in el)){
+                      // Set visual state of "Select all" control as 'indeterminate'
+                      el.indeterminate = true;
+                  }
+              }
+              
+              // Check if all checkboxes are checked
+              var allChecked = table.$('input[type="checkbox"]').length === table.$('input[type="checkbox"]:checked').length;
+              $('#select-all-' + index).prop('checked', allChecked);
+
+              // If all checkboxes are checked, remove the indeterminate state
+              if (allChecked) {
+                  $('#select-all-' + index).prop('indeterminate', false);
+              }
+            });
+
+            // Increment the success suite counter
+            successCounter++;
+
+            // Check if this is the last successful suite data received
+            if (successCounter === totalItems) {
+                
+                enableSelect();
+
+                $('#load-container').hide();
+                $('.table-div').show();
+
+                console.log('lastsuite:', suiteName);
+                
+                $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+                  $($.fn.dataTable.tables(true)).DataTable().columns.adjust().responsive.recalc();
+                });
+                $($.fn.dataTable.tables(true)).DataTable().columns.adjust().responsive.recalc();
+            }
+
+            table.columns.adjust().draw();
+              
+          },
+          error: function(error) {
+              $('#spinner').hide();
+              // Handle the error here
+          }
+        });
+      });
+  }
+
+  // The function that starts the animation
+  function startAnimation(selectID) {
+
+    interval = setInterval(function() {
+      i = (i + 1) % loadingText.length;
+      $("#"+ selectID).closest('.multiselect-native-select').find('.multiselect-selected-text').text(loadingText[i]);
+    }, 500); // Change text every 500 milliseconds
+
+    
+  }
+
+  // The function that stops the animation
+  function stopAnimation() {
+      if (interval) {
+          clearInterval(interval);
+          interval = null;
+          i = 0;
+      }
+  }
+
+  function showSelectedTestCases() {
+    var result = [];
+
+    $('#tableTabs .nav-item').each(function() {
+        var suiteName = $(this).find('a').text();
+        var tabId = $(this).find('a').attr('href'); // Get the href attribute which corresponds to the tab content ID
+        var table = $(tabId).find('table').DataTable(); // Find the table within the corresponding tab content
+        var totalTestCases = table.data().count();
+        var selectedTestCases = table.$('input[type="checkbox"]:checked').length;
+
+        if (selectedTestCases > 0) {
+            result.push({
+                suiteName: suiteName,
+                selected: selectedTestCases,
+                total: totalTestCases
+            });
+        }
+    });
+
+    var modalContent = '';
+    
+    if (result.length > 0){
+      result.forEach(function(suite) {
+        modalContent += '<strong>' + suite.suiteName + '</strong>: ' + suite.selected + '/' + suite.total + ' test cases selected.<br>'; 
+      });
+    } else {
+      modalContent = 'There is no test case selected'
+    }
+
+    selectedTCs = result.length;
+
+    $('#confirm-response-text').html(modalContent);
+    $('#confirm-modal').modal('show');
+  }
+
+  function clearSelectOption(select_tag) {
+    $(select_tag).find('option').remove();
+  }
+
+  // Function to get all the selected test cases information
+  function getAllTableData() {
+  
+    var selectedData = [];
+
+    // Get all test suites information in current selected test plan
+    // var alltestSuitesInfo = getTestSuiteInfo();
+
+    // Iterate over each DataTable instance within the #tableContent div
+    $('#tableContent .table[id^="table-"]').each(function(index) {
+
+      var tableId = $(this).attr('id');
+
+      if (/^table-\d+$/.test(tableId)) { // Check if the id matches the pattern "table-" followed by a number
+      
+        var table = $(this).DataTable();
+        var testsuite_view_id = $(this).attr("data-testsuite-id")
+        var testsuite_query_id = $(this).attr("data-testsuite-query-id")
+        var testsuite_name = $(this).attr("data-testsuite-name")
+        // var suiteInfo = alltestSuitesInfo[index];
+
+        // Get all data from the table
+        var tableData = table.rows().data().toArray();
+
+        // Get selected data from the table
+        table.rows().every(function() {
+          var row = this.node();
+          if ($(row).find('input[type="checkbox"]').is(':checked')) {
+            var rowData = this.data();
+
+            rowData.id = rowData.id.toString();
+            rowData.query_id = rowData.query_id;
+            rowData.suite_query_id = testsuite_query_id;
+            rowData.suite_id = testsuite_view_id;
+            rowData.suite_name = testsuite_name;
+
+            selectedData.push(rowData);
+              
+          }
+        });
+      }
+    });
+    return selectedData;
+  }
+
+
+  function send_execution_plan(){
+  
+    // Get selected GC info
+    let datetime = new Date($('#execute-time').val());
+    let formatted_date = datetime.toISOString().split('.')[0] + 'Z';
+
+    selectedGCValues = $('#gc-select').val().toString();
+
+    selectedGCNames = $('#gc-select option:selected').text();
+
+    // Get selected test plan info
+    let selectedPlanData = $('#plan-select').val();
+    let selectedPlanObject = JSON.parse(selectedPlanData);
+
+    selectedPlanNames = $('#plan-select option:selected').text();
+
+    selectedPlanId = selectedPlanObject.id.toString();
+
+    selectedPlanQueryId = selectedPlanObject.queryId.toString();
+    // selectedPlanQueryId = selectedPlanQueryId.substring(selectedPlanQueryId.lastIndexOf('/')+1,);
+
+
+    // Call the function to get selected data in all shown tables
+    var tableData = getAllTableData();
+    console.log("tableData: ",tableData)
+    var mappedArray = tableData.map(function(item) {
+      return {
+        author: renderData['username'],
+        global_config_name: selectedGCNames,
+        global_config_id: selectedGCValues,
+        test_plan_name: selectedPlanNames,
+        test_plan_id: selectedPlanId,
+        test_plan_query_id: selectedPlanQueryId,
+        test_suite_name: item.suite_name,
+        test_suite_id: item.suite_id,
+        test_suite_query_id: item.suite_query_id,
+        test_case_name: item.title,
+        test_case_id: item.tcase_view_id,
+        test_case_query_id: item.tcase_query_id,
+        test_case_implementation_path: item.implementation_path,
+        execution_scheduler: formatted_date,
+      };
+    });
+
+    // Create a pre-defined object format for transmission
+    var exec_plan_name = $("#exec_plan_name").val()
+    let sendObject = {
+      "execution_plan_name":exec_plan_name,
+      "execution_plan": {},
+      "hil_name": renderData['PCsetup'],
+
+    };
+
+    // Map the selected data to the send object
+    mappedArray.forEach(function(item, index) {
+
+      sendObject.execution_plan[index] = item;
+
+    });
+    console.log("sendObject: ",sendObject)
+    disableSelect();
+    $.ajax({
+      url: '/send_execution_plan/', 
+      type: 'post',
+      headers: {
+      'X-CSRFToken': "{{csrf_token}}"
+      },
+      async: true,
+      cache: false,
+      data: JSON.stringify(sendObject),
+      contentType: 'application/json',
+      dataType : 'json',
+      success: function(data) {
+        enableSelect();
+        $('.table-div').show();
+        $('#load-container').hide();
+        $('#noti-response-text').text(data.message);
+        $('#noti-modal').modal('show');
+        if (data.status === 200) {
+          $('#noti-modal-body').css('border-image', 'linear-gradient(to right, rgba(165, 231, 165, 0.474), rgb(84, 228, 84), rgba(165, 231, 165, 0.474)) 1');
+        } else {
+          $('#noti-modal-body').css('border-image', 'linear-gradient(to right, rgba(255, 174, 174, 0.551), rgb(255, 44, 44), rgba(255, 174, 174, 0.551)) 1');
+        }
+      },
+      error: function(error) {
+        enableSelect();
+        $('.table-div').show();
+        $('#load-container').hide();
+        $('#noti-response-text').text(error.statusText);
+        $('#noti-modal').modal('show');
+        $('#noti-modal-body').css('border-image', 'linear-gradient(to right, rgba(255, 174, 174, 0.551), rgb(255, 44, 44), rgba(255, 174, 174, 0.551)) 1');
+      }
+    });
+  }
+
+  //--------------------------------------------------------
+  $( document ).ready(function() {
+
+    $('#gc-select').multiselect({
+      enableFiltering: true,
+      buttonClass: 'custom-btn',
+      nonSelectedText: 'Select Stream / Baseline',
+    });
+
+    $('#plan-select').multiselect({
+      enableFiltering: true,
+      buttonClass: 'custom-btn',
+      nonSelectedText: 'Select Test Plan',
+    });
+
+    $('#suite-select').multiselect({
+        enableFiltering: true,
+        includeSelectAllOption: true,
+        selectAllJustVisible: false,
+        buttonTextAlignment: 'left',
+        nonSelectedText: 'Select Test Suite',
+        buttonContainer: '<div class="btn-group test-suite-group"/>',
+        buttonClass: 'custom-btn',
+        optionClass: function(element) {
+          return 'suite-option';
+        }
+    });
+    
+    $('.table-div').hide();
+   
+    disableSelect();
+    
+    $("#gc-select").change(function() {
+    // This function will be triggered when the selected option changes
+    let selectedGCId = $(this).val();
+    
+    clearSelectOption("#plan-select")
+    loadtestPlanlist(selectedGCId);
+    
+    });
+
+    $("#plan-select").change(function() {
+      // This function will be triggered when the selected option changes
+      let selectedPlanData = $(this).val();
+      let selectedObjectData = JSON.parse(selectedPlanData);
+      let plan_id = selectedObjectData.queryId;
+
+      gc_id = $('#gc-select').val().toString();
+
+      disableSelect();
+      clearSelectOption("#suite-select");
+
+      loadtestSuitelist(gc_id, plan_id);
+    });
+
+    $("#execute-time").val(new Date().toJSON().slice(0,19));
+    startAnimation('gc-select');
+    disableSelect();
+        
+    $.ajax({
+      url: '/query_internal_streams',  // Replace with your actual API endpoint
+      type: 'get',
+      async: true,
+      cache: false,
+      data: {'project': renderData['project']},
+      dataType : 'json',
+      success: function(data) {
+        stopAnimation();
+        $('#gc-select').append("<option disabled selected>Select Stream / Baseline</option>");
+        $.each(data, function(key, value) {
+          $('#gc-select').append($('<option>', { 
+            value: value['identifier'],
+            text : value['title'] 
+          }));
+        });
+        $('#gc-select').multiselect('rebuild');
+      },
+      error: function(error) {
+      // Handle the error here
+      }
+    });
+    
+    $('#send-plan-btn').on( "click", function() {
+
+      showSelectedTestCases();
+      $('#confirm-modal').modal('show');
+      
+    });
+
+    $('#confirmedButton').on('click', function() {
+
+      // Hide the modal
+      $('#confirm-modal').modal('hide');
+      $('.table-div').hide();
+      $('#load-container').show();
+      // Perform the functionality here
+      send_execution_plan();
+        
+    });
+
+    // handle the modal close event
+    $('#confirm-modal').on('hidden.bs.modal', function() {
+      $('#confirm-response-text').html('');
+    });
+    
+    $('#homeButton').click(function() {
+      window.location.href = '/';  
+    });
+  
+  });
+  //------------------------------------------------------
+
+</script>
+{% endblock %}
+
+
+ 
+
+
+
+
+
+
+ 
+

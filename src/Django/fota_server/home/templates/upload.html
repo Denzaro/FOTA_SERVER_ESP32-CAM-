@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Upload Firmware</title>
+</head>
+<body>
+    <div class="container">
+        <h2>Upload Firmware</h2>
+        <form id="upload-form" action="{% url 'upload_hex' %}" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <label for="hex-file">Select Hex file to upload:</label>
+            <input type="file" id="hex-file" name="hex_file" accept=".hex" required>
+            <button type="submit">Upload</button>
+        </form>
+        
+        {% if file_url %}
+            <h3>Uploaded File</h3>
+            <p>Filename: {{ filename }}</p>
+            <a href="{{ file_url }}" download>Download {{ filename }}</a>
+        {% endif %}
+    </div>
+</body>
+</html>

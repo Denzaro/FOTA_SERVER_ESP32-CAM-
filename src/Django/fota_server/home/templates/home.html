@@ -1,0 +1,958 @@
+{% extends 'base.html'%}
+{% block page_content %}
+{% load static %}
+<style>
+  /* Confirmation Box Styles */
+.confirmation-box {
+  display: none; /* Initially hidden */
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 300px;
+  padding: 20px;
+  background-color: white;
+  border: 1px solid #ccc;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 9999;
+  text-align: center;
+  width: 350px;
+  height: 140px;
+}
+
+.confirmation-content p,.info-content p{
+  font-size: 16px;
+  margin-bottom: 20px;
+}
+
+/* Background Overlay */
+.confirmation-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9998;
+}
+.ui-dialog-titlebar-close .ui-button-text {
+            display: none;
+
+}
+.ui-dialog-titlebar-close::before {
+            content: "X";
+            font-size: 18px;
+            color: black;
+            display: block;
+            
+}
+</style>
+<style>
+  .change_execute_mode:hover{
+    cursor: pointer;
+  }
+  tr:hover{
+    cursor: pointer;
+  }
+  .container,.table-div{
+    font-family: Arial,Helvetica,sans-serif !important;
+    font-size: 13px !important;
+  }
+  .container{
+    margin-right: 10px;
+    margin-left: 310px;
+  }
+  input,select{
+    width: 150px!important;
+    height: 32px!important;
+    text-align: center;
+    padding: 0px !important;
+    font-size: 12px!important;
+
+  }
+ button{
+    width: 130px;
+    height: 30px;
+    font-size: 12px!important;
+  }
+  .form-group{
+    justify-content: center;
+  }
+  /* Table Configuration */
+  table.dataTable {
+    width: 100%; /* Set table width */
+    table-layout: fixed; /* Fixed layout for cells */
+}
+
+/* Apply truncation and ellipsis */
+table.dataTable td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Tooltip on hover */
+.sidebar {
+  width: 300px;
+  height: 100%;
+  background-color: #f8f9fa;
+  padding: 15px;
+  overflow-y: auto;
+  position: fixed; /* Fix the sidebar position */
+  top: 68px; /* Adjust this value to match the height of your navbar */
+  bottom: 0;
+  font-family: Arial,Helvetica,sans-serif !important;
+  font-size: 13px !important;
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  align-items: center;
+    }
+
+label{
+  font-size: 13px;
+}
+.textarea_box{
+  /* height: 32px!important; */
+  min-height: 32px!important;
+  resize: vertical!important;
+  padding: 1px !important;
+}
+.require_field{
+  color: red;
+}
+.progress-container{
+  width: 200px;
+  height: 30px;
+  font-size: 12px;
+  padding: 0px;
+  margin-top: 10px;
+  justify-content: left!important;
+  align-items: center!important;
+  border-top-left-radius: 15px;
+  border-bottom-left-radius: 15px;
+  background:#34dbcd;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+}
+.progress-circle {
+    width: 30px;
+    height: 30px;
+    margin: 0px;
+    border-radius: 50%;
+    background: conic-gradient(#1770aa 0% 0%, #f3f3f3 0% 100%);
+    display: flex;
+    justify-content: center!important;
+    align-items: center!important;
+}
+.percentage {
+    position: absolute;
+    font-size: 9px;
+}
+
+fieldset {
+  display: block;
+  margin-left: 2px;
+  margin-right: 2px;
+  padding-top: 0.35em;
+  padding-bottom: 0.625em;
+  padding-left: 0.75em;
+  padding-right: 0.75em;
+  border: 1px solid;
+}
+.ui-dialog-buttonset button{
+  width: 56px!important;
+  height: 30px!important;
+}
+ /* Style for Yes button */
+ .yes-button {
+            background-color: green!important;  /* Red color for Yes button */
+            color: white !important;           /* White text color */
+            border: none;           /* No border */
+        }
+
+/* Style for Cancel button */
+.cancel-button {
+    background-color: red !important; /* Green color for Cancel button */
+    color: white!important;           /* White text color */
+    border: none;           /* No border */
+}
+
+/* Optional: Add hover effects */
+.yes-button:hover {
+    background-color: darkgreen!important; /* Darker red on hover */
+}
+
+.cancel-button:hover {
+    background-color: darkred!important; /* Darker green on hover */
+}
+</style>
+<div class="container">
+  <div class="sidebar">
+    <fieldset class="border p-2" style="text-align: left; width: 100%;height: 116px;" >
+      <legend class="w-auto"><h3>Lab selected status</h3></legend>
+      <div id="lab_update_status">
+
+      </div>
+    <!-- <h3 style="border-bottom: 1px solid; width: 100%; padding: 5px;">Lab Select Status</h3> -->
+      <!-- <div class="" style="justify-content: left;">
+        <label>Project:</label>
+      </div>
+      <div class="" style="justify-content: left;">
+        <label>Lab Name:</label>
+      </div>
+      <div class="" style="justify-content: left;">
+        <label>Execution mode:</label>
+      </div> -->
+    </fieldset>
+    <h3 style="border-bottom: 1px solid; width: 100%; padding: 5px; text-align: left;">Upload History</h3>
+    <div>
+      <div id="ongoing_upload" style="justify-content: center;text-align: center;display: flex; flex-direction: column;"></div>
+      <div id="old_upload" style="justify-content: center;text-align: center;display: flex; flex-direction: column;">
+      </div>
+    </div>
+</div>
+    <div class="row form-inline" style="margin-top: 50px;justify-content: center; font-weight: bolder;">
+      <div class="col-md-3 col-lg-3 col-sm-3">
+          <div class="form-group">
+            <label for="project-select" class="">Upload &nbsp;</label>
+            <select id="project-select" class="form-control">
+              <option value="">Upload Hex File</option>
+            </select>
+          </div>
+      </div>
+      <div class="col-md-3 col-lg-3 col-sm-3">
+        <div class="form-group">
+          <label for="hil-select" class="">Lab PC: &nbsp;</label>
+          <select id="hil-select" class="form-control">
+            <option value="">Select HIL setup</option>
+          </select>
+        </div>
+      </div>
+      <div class="col-md-4 col-lg-4 col-sm-4">
+        <div class="form-group btn_query" >
+          <button type="button" class="btn btn-primary" id="query-btn" disabled>Query</button> &nbsp;&nbsp;&nbsp;&nbsp;
+          <button type="button" class="btn btn-primary" id="set-execution-btn" disabled>Set Execution Plan</button>
+        </div>
+      </div>
+    </div>
+   <div class="query_info" style="margin-top: 10px; display: block;">
+     <div class="table-div">
+       <button class="btn btn-info btn-upload-result" id="btn-upload-modal" style="margin-bottom: 15px;" onclick="show_modal_upload()">Upload Result</button>
+       <table id="hil-status-table" class="table table-hover">
+       </table>
+     </div>
+   </div>
+</div>
+
+<!--Modal upload result-->
+<div class="modal" id="modal_upload" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-xl" role="document"> <!-- Add 'modal-lg' here -->
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title">Upload Result</h1>
+      </div>
+      <div class="modal-body">
+        <form id="modal_form_upload">
+          {% csrf_token %} 
+          <div class="row form-inline" style="justify-content: left; font-weight: bolder;">
+            <div class="form-group" style="justify-content: left;">
+              <label for="modal-alm-user" class=""><span class="require_field">(*)</span>ALM Username: &nbsp;</label>
+              <input id="modal-alm-user" class="form-control" name="alm_username" value="" onchange="check_alm_auth()">
+            </div>
+            <div class="form-group" style="justify-content: left; ;margin-left: 20px;">
+              <label for="modal-alm-pass" class=""><span class="require_field">(*)</span>ALM Password: &nbsp;</label>
+              <input id="modal-alm-pass" class="form-control" type="password" name="alm_password" value="" onchange="check_alm_auth()">
+            </div>
+            <div class="form-group" id="status_check_alm"style="justify-content: left; ;margin-left: 20px;">
+              
+            </div>
+          </div>
+          <div class="row form-inline" style="justify-content: left; font-weight: bolder; margin-top: 15px;">
+            <div class="form-group" style="justify-content: left;">
+              <label for="modal-iteration" class=""><span class="require_field">(*)</span>Iteration: &nbsp;</label>
+              <select id="modal-iteration" class="form-control" name="iteration" style="width: fit-content!important;">
+                <option value="">Select Iteration</option>
+              </select>
+            </div>
+          </div>
+          <div class="row form-inline" style="justify-content: left; font-weight: bolder; margin-top: 15px;">
+            <div class="form-group" style="justify-content: left;">
+              <label for="modal-sw-build" class=""><span class="require_field">(*)</span>SW Build: &nbsp;</label>
+              <select id="modal-sw-build" class="form-control" name="sw_build" style="width: fit-content!important;">
+                <option value="">Select SW build</option>
+              </select>
+            </div>
+            <div class="form-group" style="justify-content: left; ;margin-left: 20px;">
+              <label for="modal-hw-variant" class=""><span class="require_field">(*)</span>HW Variant: &nbsp;</label>
+              <select id="modal-hw-variant" class="form-control" name="hw_variant" style="width: fit-content!important;">
+                <option value="">Select Hw variant</option>
+              </select>
+            </div>
+            <div class="form-group" style="justify-content: left;;margin-left: 20px;">
+              <label for="modal-result-type" class=""><span class="require_field">(*)</span>Result Type: &nbsp;</label>
+              <select id="modal-result-type" class="form-control" name="result_type" style="width: fit-content!important;">
+                <option value="pass" selected>Passed</option>
+                <option value="fail">Failed</option>
+                <option value="pass|fail">Passed&Failed</option>
+              </select>
+            </div>
+          </div>
+        </form>
+        <div style="border-top: rgb(55, 14, 159) solid thin;width: 100%; margin-top: 10px;"></div>
+        <div style="margin-top: 10px; width: 100%;">
+          <table id="modal_data_table">
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="trigger_modal_upload" class="btn btn-primary" >Upload</button>
+        <button type="button" id="close_modal_upload" class="btn btn-danger" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Confirmation Box HTML -->
+<!-- Confirmation Box (hidden initially) -->
+<div id="confirmationBox" class="confirmation-box">
+  <div class="confirmation-content">
+    <p>Are you sure you want to proceed?</p>
+    <button id="confirmYes" class="btn btn-primary">Yes</button>
+    <button id="confirmNo" class="btn btn-danger">No</button>
+  </div>
+</div>
+<div id="confirmation">
+</div>
+<div class="modal" id="infoBox" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document"> <!-- Add 'modal-lg' here -->
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title">Information</h1>
+      </div>
+      <div class="modal-body info-content">
+      
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="confirmClose" class="btn btn-info" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Button to Trigger Confirmation -->
+<button id="triggerConfirmation">Click Me</button>
+
+<!-- <script>
+  $(document).ready(function(){
+    f_check_progress();
+  })
+</script>
+
+<script>
+    let project_list;
+    // --------------------------------------------------
+    $(document).ready(function() {
+      $.ajax({
+          url: '/project-hil-list',  // Replace with your actual API endpoint
+          type: 'get',
+          data: {},
+          dataType : 'json',
+          success: function(data) {
+            project_list = data
+            for(x in data){
+              $('#project-select').append($('<option>').val(x).text(x));
+              // $('#modal-project-select').append($('<option>').val(x).text(x));
+            }
+          },
+          error: function(error) {
+          // Handle the error here
+          }
+        });
+    })
+
+    $(document).ready(function() {
+      $("#btn-upload-modal").hide()
+
+      $("#close_modal_upload").on('click',function(){
+        $("#modal_upload").hide()
+      })
+
+      $("#trigger_modal_upload").on('click',function(){
+        var execution_plan_id = $('#hil-status-table').attr("data-execution-plan-id")
+        var project =  $('#project-select').val()
+        var hil_select = $("#hil-select").val()
+        var progress_code = get_progress_code(project,hil_select,execution_plan_id);
+        var ongoing_upload_block = $("#ongoing_upload")
+        var upload_block = ongoing_upload_block.find(`div[id=${progress_code}]`)
+        console.log("progress_code: ",progress_code)
+        if(upload_block.length===0){
+          $('.confirmation-box, .confirmation-overlay').show();
+        }else{
+          $('.info-content').empty()
+          $('.info-content').append($('<p>').text(`Upload result for execution plan id: ${execution_plan_id} is on going...`))
+          $('#infoBox').show()
+        }
+      });
+
+      $('#confirmYes').on('click', function() {
+        var formArray = $("#modal_form_upload").serializeArray()
+        var result_type = $("#modal-result-type").val()
+        var execution_plan_id = $('#hil-status-table').attr("data-execution-plan-id")
+        var execution_plan_name = $('#hil-status-table').attr("data-execution-plan-name")
+        var project =  $('#project-select').val()
+        var hil_select = $("#hil-select").val()
+        var formData = {'execution_plan_id':execution_plan_id,
+                        'execution_plan_name':execution_plan_name,
+                        'project':project,
+                        'test_setup':hil_select};
+        $.map(formArray, function(n, i){
+            formData[n['name']] = n['value'];
+        });
+        formData['test_data'] =$('#modal_data_table').DataTable().rows({ filter: 'applied' }).data().toArray();
+        console.log("Form data: ",formData)
+        $.ajax({
+          url: '{%url "upload_result"%}', 
+          type: 'post',
+          data: JSON.stringify(formData),
+          contentType: 'application/json',
+          headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'  // Set the CSRF token in the header
+                },
+          success: function(data) {
+            f_check_progress()
+            $("#modal_upload").hide()
+          }
+        })
+        $('.confirmation-box, .confirmation-overlay').hide();
+      });
+      // Handle No button click
+      $('#confirmNo').on('click', function() {
+        $('.confirmation-box, .confirmation-overlay').hide();
+      });
+      // Handle close button click
+      $('#confirmClose').on('click',function(){
+        $('#infoBox').hide()
+      })
+      
+    })
+      //---------------------------------------------------------------
+      $('#project-select').change(function(){
+        // get the selected value
+        selected = this.value;
+
+        // get the corresponding list
+        project_select = project_list[selected];
+
+        // remove default option value
+        $("option[value='']").remove(); 
+
+        // empty the hil selection list in case the project name is updated
+        $('#hil-select').empty()
+
+        // disable query button on new project selection
+        $('#query-btn').prop('disabled', true);
+        $('#set-execution-btn').prop('disabled', true);
+        
+        // create the default value to select 
+        $('#hil-select').append($('<option>', {
+            value: "",
+            text: "Select HIL setup"
+        }));
+        
+        // loop through avaible HIL list and append to select options
+        for(x in project_select){
+          $('#hil-select').append($('<option>').val(project_select[x].name).text(project_select[x].name));
+        }
+      });
+
+      // --------------------------------------------------
+      $('#hil-select').change(function(){
+        // get the selected value
+        selected_hil = this.value
+
+        // remove default option off the select
+        $("option[value='']").remove(); 
+
+        // enable query button on valid value
+        if (selected_hil == ""){
+          $('#query-btn').prop('disabled', true);
+          $('#set-execution-btn').prop('disabled', true);
+        } 
+        else {
+          $('#query-btn').prop('disabled', false);
+          $('#set-execution-btn').prop('disabled', false);
+        }
+      });
+      //------------------------------------------------------------
+      $('#hil-status-table').on('dblclick','.execution_plan_row',function(){
+        var execution_plan_id = $(this).attr('data-execution-id')
+        var execution_plan_name = $(this).attr('data-execution-name')
+        var project_selected = $("#project-select").val()
+        var hil_selected = $("#hil-select").val()
+        // console.log(execution_plan_id)
+        $('#hil-status-table').attr("data-execution-plan-id",execution_plan_id)
+        $('#hil-status-table').attr("data-execution-plan-name",execution_plan_name)
+        $.ajax({
+          url : '{%url "query_detail_execution_plan"%}',
+          type: 'get',
+          data:{'project_select':project_selected,
+          'hil_select':hil_selected,
+          'execution_plan_id':execution_plan_id},
+          dataType: 'json',
+          success: function(data_rte) {
+            testcases_list = data_rte.testcases_list
+            console.log("testcases_list: ",testcases_list)
+            //add more data to button upload result
+            if(testcases_list.length>0){
+              var tc = testcases_list[0]
+              $("#btn-upload-modal").attr('data-stream-id',tc.global_config_id)
+              $("#btn-upload-modal").attr('data-tplan-view-id',tc.test_plan_id)
+              //show buttom upload
+              $("#btn-upload-modal").show()
+            }
+
+            ///////////////////////////////////
+            if ($.fn.DataTable.isDataTable('#hil-status-table')) {
+              $('#hil-status-table').DataTable().destroy();
+              $('#hil-status-table').empty()
+            }
+            $('#hil-status-table').DataTable({
+              // destroy:true,
+              pagingType: 'simple_numbers',
+              data: testcases_list,
+              order: [[3, 'desc']],
+              columns: [
+                { data : 'test_case_id', title:  'Test ID'},
+                { data : 'author', title:  'Author'},
+                { data : 'test_case_name', title:  'TC Name'},
+                // { data : 'execution_scheduler',title: 'Execution Time'},
+                // { data : 'execution_status', title:  'Status'},
+                // { data : 'test_case_implementation_path', title:  'Test Script'},
+                { data : 'test_case_result', title:  'Result'},
+                // { data : 'test_plan_name', title:  'Test Plan'},
+                { data : 'test_suite_name', title:  'Test Suite'},
+                { data : 'report_path', title:  'Report',
+                  'render': function(data,type,row,meta){
+                    if(data===""){
+                      return ""
+                    }else{
+                      return `<a href="/home/download_report/?project=${project_selected}&test_setup=${hil_selected}&report_path=${data}">Download</a>`
+                    }
+                  }
+                }
+                // { data : 'created', title:  'Created'},
+                // { data : 'global_config_id', title:  'GC ID'},
+                // { data : 'global_config_name', title:  'GC Name'},
+                // { data : 'test_case_query_id', title:  'test_case_query_id'},
+                // { data : 'test_plan_id', title:  'test_plan_id'},
+                // { data : 'test_plan_query_id', title:  'test_plan_query_id'},
+                // { data : 'test_suite_id', title:  'test_suite_id'},
+                // { data : 'test_suite_query_id', title:  'test_suite_query_id'},
+              ],
+              "columnDefs": [
+                      { "width": "20px", "targets": 0 },  // Fix width of first column to 100px
+                      { "width": "10px", "targets": 1 },  // Fix width of first column to 100px
+                      { "width": "200px", "targets": 2 },  // Fix width of second column to 200px
+                      // { "width": "100px", "targets": 3 },  // Fix width of first column to 100px
+                      // { "width": "10px", "targets": 3 },  // Fix width of first column to 100px
+                      { "width": "10px", "targets": 3 },  // Fix width of second column to 
+                      { "width": "100px", "targets": 4 },  // Fix width of first column to 100px
+                      { "width": "25px", "targets": 5 },  // Fix width of second column to 200px
+                ],
+              createdRow: function(row, data, dataIndex) {    
+                // Add a class based on the status
+                // $(row).addClass('data-full-text')
+                if (data.execution_status === 'planned') {
+                    $(row).addClass('planed-tc');
+                } else if (data.execution_status === 'running') {
+                    $(row).addClass('running-tc');
+                } else if (data.execution_status === 'completed') {
+                    $(row).addClass('completed-tc');
+                } else if (data.execution_status === 'NotExecuted') {
+                    $(row).addClass('not-executed-tc');
+                } else if (data.execution_status === 'TestScriptNotLoaded') {
+                    $(row).addClass('ts-not-load-tc');
+                }
+              }
+              
+            });
+              
+            
+          },
+          error: function(error) {}// Handle the error here
+        });
+      });
+      //-------------------------------
+      $('#query-btn').on( "click", function() {
+        var project_selected = $("#project-select").val()
+        var hil_selected = $("#hil-select").val()
+        $("#btn-upload-modal").hide()
+        $.ajax({
+          url : '{%url "query_all_execution_plan"%}',
+          type: 'get',
+          data:{'project_select':project_selected,'hil_select':hil_selected},
+          dataType: 'json',
+          success: function(data_return) {
+            execution_plan = data_return.execution_list
+            execution_mode = data_return.execution_mode
+            // console.log(data_return)
+            //update lab selected status
+            update_lab_status_display(project_selected,hil_selected,execution_mode)
+
+            if ($.fn.DataTable.isDataTable('#hil-status-table')) {
+                $('#hil-status-table').DataTable().destroy();
+                $('#hil-status-table').empty()
+              }
+
+            $('#hil-status-table').DataTable({
+                  pagingType: 'simple_numbers',
+                  data: execution_plan,
+                  // order: [[3, 'desc']],
+                  columns: [
+                    {data : 'no',title:"No"},
+                    { data : 'creator', title:  'Creator'},
+                    { data : 'id', title:  'Execution ID'},
+                    { data : 'execution_plan_name', title:  'Execution Name'},
+                    { data : 'plan_execution_status', title:  'Status'},
+                    { data : 'pass_count', title:  'Pass'},
+                    { data : 'fail_count', title:  'Fail'},
+                    { data : 'error_count', title:  'Error'},
+                    { data : 'block_count', title:  'Block'},
+                  ],
+                  createdRow: function(row, data, dataIndex) {
+                    // Add a class based on the status
+                    $(row).addClass('execution_plan_row')
+                    $(row).attr('data-execution-id',data.id)
+                    $(row).attr('data-execution-name',data.execution_plan_name)
+                  },
+                  "columnDefs": [
+                        { "width": "10px", "targets": 0 },  // Fix width of first column to 100px
+                        { "width": "50px", "targets": 1 },
+                        { "width": "80px", "targets": 2 },  // Fix width of first column to 100px
+                        { "width": "500px", "targets": 3 },  // Fix width of second column to 200px
+                        { "width": "50px", "targets": 4 },
+                        { "width": "25px", "targets": 5 },
+                        { "width": "25px", "targets": 6 },
+                        { "width": "25px", "targets": 7 },
+                        { "width": "25px", "targets": 8 },
+                  ]
+            })
+          }
+        })
+      })
+      // --------------------------------------------------
+      $('#lab_update_status').on("click",".change_execute_mode" ,function() {
+
+        var projectselect = $('#data-project-select').attr('data-project-select');
+        var hilselect = $('#data-lab-select').attr('data-lab-select')
+        var executionmode = $('.change_execute_mode').text().trim().toLowerCase()
+        var changemode = (executionmode==='enabled') ? 'disable':'enable';
+        $('#confirmation').empty()
+        $('#confirmation').append($("<div>").addClass("confirmation-content").
+          append($("<p>").html(`Lab ${hilselect} is <b>${executionmode}</b>. Do you want to <b>${changemode}</b> it?`)))
+        $('#confirmation').dialog({
+                resizable: false,
+                height: "auto",
+                width: 400,
+                modal: true,
+                open: function() {
+                // Use jQuery to set the close button content to "X"
+                  $(this).parent().find('.ui-dialog-titlebar-close').remove();
+                  $(this).parent().find(".ui-dialog-buttonset button").removeClass("yes-button cancel-button");
+                  $(this).parent().find('.ui-dialog-buttonset button').first().addClass('cancel-button');
+                  $(this).parent().find('.ui-dialog-buttonset button').last().addClass('yes-button');
+                },
+                buttons: {
+                    "Cancel": function() {
+                        $(this).dialog("close");
+                    },
+                    "Yes": function() {
+                        $(this).dialog("close");
+                        $("#lab_update_status").empty()
+                        $("#lab_update_status").append($("<div>").css({'text-align':'center',}).
+                          append($("<i>").addClass("fas fa-spinner fa-spin").css({'color':'green','font-size':'30px','justify-content':'center!important'})))
+                        $.ajax({
+                            url: '{%url "change_execution_mode" %}',  // Replace with your actual API endpoint
+                            type: 'get',
+                            data: {'hil_select': hilselect,'project_select':projectselect,'execution_mode':executionmode},
+                            dataType : 'json',
+                            error: function(error) {
+                            // Handle the error here
+                            },
+                            statusCode: {
+                              200: function(data){
+                                // console.log(data)
+                                update_lab_status_display(projectselect,hilselect,data.execute_status)
+                              }
+                            }
+                        });
+                    },
+                    
+                }
+            });
+        
+          
+      } );
+      // --------------------------------------------------
+      $('#set-execution-btn').on( "click", function(){
+        let selectedProject = $('#project-select').val();
+        let selectedPCsetup = $('#hil-select').val();
+        console.log(selectedProject,selectedPCsetup)
+          $.ajax({
+            type: 'get',
+            url: '/set_execution_plan_view/',
+            data: {
+              'project': selectedProject,
+              'PCsetup': selectedPCsetup,
+            },
+            success: function(data) {
+
+              window.location.replace('/set_execution_plan_view/?project=' + selectedProject + '&PCsetup=' + selectedPCsetup);
+            
+            },
+            error: function(xhr, status, error) {
+              // This is executed if an error occurs
+              console.error('AJAX error:', error);
+            }
+          });
+      }); 
+</script>
+<script>
+  $("#modal-result-type").on('change',function(){
+    update_modal_table($(this).val())
+  })
+  function show_modal_upload(){
+    var gc_config = $("#btn-upload-modal").attr('data-stream-id')
+    var tplan_view_id = $("#btn-upload-modal").attr('data-tplan-view-id')
+    $.ajax({
+      type:'get',
+      data:{'gc_config':gc_config,'tplan_view_id':tplan_view_id},
+      url: '{%url "upload_result"%}',
+      error: function(data){alert(`Error to upload result for ${gc_config} => tplan ID: ${tplan_view_id}`)},
+      success: function(data) {
+        console.log(data)
+        hw_variants = data.hw_variant
+        iteration = data.iteration
+        sw_build = data.sw_build
+        $("#modal-hw-variant").empty()
+        $("#modal-hw-variant").append($("<option>").val("").text("Please Select hw-variant"))
+        // console.log(hw_variants)
+        $.each(hw_variants,function(index,value){
+          $("#modal-hw-variant").append($("<option>").val(value.id).text(value.HW_Variant_value))
+        })
+
+        $("#modal-iteration").empty()
+        $("#modal-iteration").append($("<option>").val("").text("Please Select iteration"))
+        $.each(iteration,function(index,value){
+          $("#modal-iteration").append($("<option>").val(value.id).text(value.test_phase_title))
+        })
+
+        $("#modal-sw-build").empty()
+        $("#modal-sw-build").append($("<option>").val("").text("Please Select sw-build"))
+        $.each(sw_build,function(index,value){
+          $("#modal-sw-build").append($("<option>").val(value.id).text(value.build_title))
+        })
+        update_modal_table($("#modal-result-type").val())
+        // $('#modal_data_table_filter').hide();  // Hide the search box
+        $("#modal_upload").show()
+      }
+    })
+  }
+
+  function update_modal_table(filter_value){
+    var allData = $('#hil-status-table').DataTable().rows().data().toArray();
+    //update table testcase
+    $('#modal_data_table').empty()
+        $('#modal_data_table').DataTable({
+            "autoWidth": false,
+            "ordering": false,
+            "searching": true,     // Disable search (filtering)
+            "lengthChange": true,   // Disable "show entries" dropdown
+            destroy:true,
+            pagingType: 'simple_numbers',
+            data: allData,
+            columns: [
+              { data : 'test_case_id', title:  'Test ID',"width": "20px"},
+              { data : 'test_case_name', title:  'TC Name',"width": "200px"},
+              { data : 'test_case_result', title:  'Result',"width": "20px"},
+              // { data : 'comments', title:  'Comment',
+                // "render": function (data, type, row, meta) {
+                //             return '<textarea rows="1" class="form-control textarea_box" name="comments">' + data + '</textarea>';
+                //         },
+                // "width": "100px"
+                //       },
+              // {title: 'Defect Link',
+              //   "render": function(){
+              //     return "<textarea rows='1' class='form-control textarea_box' name='defect_link'></textarea>"
+              //   },
+              //   "width": "100px"
+              //},
+            ],
+            initComplete: function(){
+              var table = this.api();
+              table.column(2).search(filter_value,true,false).draw();
+            },
+            createdRow: function(row, data, dataIndex) {
+              $(row).attr('data-tc-id',data.id)
+              $(row).attr('data-tc-result',data.test_case_result)
+            }
+            // "columnDefs": [
+            //   { "width": "20px", "targets": 0 },  // Fix width of first column to 100px
+            //   { "width": "200px", "targets": 1 },  // Fix width of first column to 100px
+            //   { "width": "20px", "targets": 2 },  // Fix width of second column to 200px
+            // ]
+        })
+  }
+
+  function sleep(ms) {
+      return new Promise(
+          resolve => setTimeout(resolve, ms)
+      );
+  }
+  function f_check_progress(){
+        var check_progress = setInterval(function(){
+            $.ajax({
+                url : "{% url 'progress_tracking' %}",
+                data : "",
+                type : 'GET',
+                contentType: false,
+                processData: false,
+                async: false,
+                error: function(result){
+                    console.log(result)
+                    alert("progress_tracking => Failed");
+                    clearInterval(check_progress);
+                },
+                success : function(data) {
+                    // console.log("data:",data)
+                    // console.log("percentage:",data.percentage)
+                    // global_log_messages = data.log_message
+                    if(Object.keys(data).length>0){
+                      updatePercentage(data)
+                    }else{
+                      sleep(2000);
+                      clearInterval(check_progress);
+                    }
+                    
+                }
+            })
+        },1000)
+    }
+  function updatePercentage(data){
+    var ongoing_upload_block = $("#ongoing_upload")
+    $.each(data,function(progress_code,progress_obj){
+      var upload_block = ongoing_upload_block.find(`div[id=${progress_code}]`)
+      if(upload_block.length===0){
+        ongoing_upload_block.append(
+          $("<div>").addClass('progress-container row form-inline').attr('id',progress_code).append(
+            $("<div>").addClass('progress-circle').append(
+              $("<div>").addClass('percentage').text(progress_obj.percentage+'%')
+            ).css('background', 
+                  `conic-gradient(#3498db ${progress_obj.percentage * 3.6}deg, #f3f3f3 ${progress_obj.percentage * 3.6}deg 360deg)`),
+            $("<span>").text(`Uploading Execution ID: ${progress_obj.id}`)
+          )
+        )
+      }else{
+        console.log(progress_obj.percentage)
+        upload_block.first().find('.percentage').text(progress_obj.percentage+'%')
+        upload_block.first().find('.progress-circle').css('background', 
+        `conic-gradient(#3498db ${progress_obj.percentage * 3.6}deg, #f3f3f3 ${progress_obj.percentage * 3.6}deg 360deg)`)
+      }
+    });
+    setTimeout(function(){
+      $.each(data,function(progress_code,progress_obj){
+        if (progress_obj.percentage>=100){
+          //Remove progress object => create new API
+          $.ajax({
+            type:'get',
+            url:'{%url "clear_progress"%}',
+            data : "",
+            async:false,
+            contentType: false,
+            processData: false,
+            success: function(data){
+              $(`#${progress_code}`).remove()
+            }
+          })
+        }
+      })
+    },1000)
+  }
+
+  function get_progress_code(project,test_env,execution_id){
+    var progress_code = null;
+    console.log("data: ", {'execution_plan_id':execution_id,'project':project,'test_setup':test_env})
+    $.ajax({
+      type:'get',
+      url:'{%url "generate_progress_code"%}',
+      async:false,
+      data:{'execution_plan_id':execution_id,'project':project,'test_setup':test_env},
+      dataType: 'json',
+      success: function(data){
+        progress_code = data.progress_code
+      }
+    })
+    return progress_code
+  }
+  function check_alm_auth(){
+    var username = $("#modal-alm-user").val()
+    var password = $("#modal-alm-pass").val()
+    var project =  $('#project-select').val()
+    var block_status_check_alm = $("#status_check_alm")
+    block_status_check_alm.empty()
+    block_status_check_alm.append($("<i>").addClass("fas fa-spinner fa-spin").css({'color':'green','font-size':'18px'}))
+    // var hil_select = $("#hil-select").val()
+    if ((username!==""&&username!==undefined) && (password!==""&&password!==undefined)){
+      $.ajax({
+        type:'POST',
+        headers: {
+                      'X-CSRFToken': '{{ csrf_token }}'  // Set the CSRF token in the header
+                  },
+        url:'{%url "check_alm_authen"%}',
+        data:{'username':username,'password':password,'project':project},
+        dataType: 'json',
+        statusCode:{
+          200:function(){
+            block_status_check_alm.empty()
+            block_status_check_alm.append($("<i>").addClass("fas fa-check alm_pass").css({'color':'green','font-size':'18px'}).text(" Pass Authen"))
+          },
+          401:function(){
+            block_status_check_alm.empty()
+            block_status_check_alm.append($("<i>").addClass("fas fa-ban alm_fail").css({'color':'red','font-size':'18px'}).text(" Fail Authen"))
+          }
+        },
+        // error: function(xhr, textStatus, errorThrown) {
+        //   alert("Error occurred: " + xhr.status);
+        //   block_status_check_alm.append($("<i>").addClass("fas fa-ban alm_fail").css({'color':'red','font-size':'15px'}).text("Fail Authen"))
+        // }
+      })
+    }
+  }
+  function update_lab_status_display(project_selected,hil_selected,execute_mode){
+    $("#lab_update_status").empty()
+    $("#lab_update_status").append($("<div>").append($(`<label id="data-project-select" data-project-select='${project_selected}'>`).text(`Project: ${project_selected}`)))
+    $("#lab_update_status").append($("<div>").append($(`<label id="data-lab-select" data-lab-select="${hil_selected}">`).text(`Lab name: ${hil_selected}`)))
+    if(execute_mode===true){
+      $("#lab_update_status").append($("<div>").
+        append($("<label>").text(`Execution Mode: `).
+          append($("<i>").addClass("fas fa-check change_execute_mode").css({'color':'green','font-size':'15px'}).text(" Enabled"))))
+    }else{
+      $("#lab_update_status").append($("<div>").
+        append($("<label>").text(`Execution Mode: `).
+          append($("<i>").addClass("fas fa-ban change_execute_mode").css({'color':'red','font-size':'15px'}).text(" Disabled"))))
+    }
+
+  }
+</script>
+<script>
+$(document).on('show.bs.modal', '.modal', function () {
+  var zIndex = 1050 + (10 * $('.modal:visible').length);
+  $(this).css('z-index', zIndex);
+  setTimeout(function() {
+    $('.modal-backdrop').not('.modal-stack').css('z-index', zIndex - 1).addClass('modal-stack');
+  }, 0);
+
+  $('#confirmDialog').modal({ backdrop: 'static', keyboard: false }).css('z-index',zIndex+10);
+});
+
+</script> -->
+{% endblock %}
